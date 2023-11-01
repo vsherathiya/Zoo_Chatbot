@@ -160,86 +160,22 @@ def retrieval_qa_pipline(device_type, use_history, promptTemplate_type="llama"):
 
 
 # chose device typ to run on as well as to show source documents.
-@click.command()
-@click.option(
-    "--device_type",
-    default="cuda" if torch.cuda.is_available() else "cpu",
-    type=click.Choice(
-        [
-            "cpu",
-            "cuda",
-            "ipu",
-            "xpu",
-            "mkldnn",
-            "opengl",
-            "opencl",
-            "ideep",
-            "hip",
-            "ve",
-            "fpga",
-            "ort",
-            "xla",
-            "lazy",
-            "vulkan",
-            "mps",
-            "meta",
-            "hpu",
-            "mtia",
-        ],
-    ),
-    help="Device to run on. (Default is cuda)",
-)
-@click.option(
-    "--show_sources",
-    "-s",
-    is_flag=True,
-    help="Show sources along with answers (Default is False)",
-)
-@click.option(
-    "--use_history",
-    "-h",
-    is_flag=True,
-    help="Use history (Default is False)",
-)
-@click.option(
-    "--model_type",
-    default="llama",
-    type=click.Choice(
-        ["llama", "mistral", "non_llama"],
-    ),
-    help="model type, llama, mistral or non_llama",
-)
-def main(device_type, show_sources, use_history, model_type):
-    """
-    Implements the main information retrieval task for a localGPT.
 
-    This function sets up the QA system by loading the necessary embeddings, vectorstore, and LLM model.
-    It then enters an interactive loop where the user can input queries and receive answers. Optionally,
-    the source documents used to derive the answers can also be displayed.
-
-    Parameters:
-    - device_type (str): Specifies the type of device where the model will run, e.g., 'cpu', 'mps', 'cuda', etc.
-    - show_sources (bool): Flag to determine whether to display the source documents used for answering.
-    - use_history (bool): Flag to determine whether to use chat history or not.
-
-    Notes:
-    - Logging information includes the device type, whether source documents are displayed, and the use of history.
-    - If the models directory does not exist, it creates a new one to store models.
-    - The user can exit the interactive loop by entering "exit".
-    - The source documents are displayed if the show_sources flag is set to True.
-
-    """
-
+def main(query,device_type="cuda" if torch.cuda.is_available() else "cpu",
+         show_sources=False, use_history=False, model_type='mistral'):
+    
     logging.info(f"Running on: {device_type}")
     logging.info(f"Display Source Documents set to: {show_sources}")
     logging.info(f"Use history set to: {use_history}")
 
-    # check if models directory do not exist, create a new one and store models here.
     if not os.path.exists(MODELS_PATH):
         os.mkdir(MODELS_PATH)
 
 # load the vectorstore
-    embeddings = HuggingFaceInstructEmbeddings(model_name=EMBEDDING_MODEL_NAME, model_kwargs={"device": device_type})
+    embeddings = HuggingFaceInstructEmbeddings(
+        model_name=EMBEDDING_MODEL_NAME,
+        model_kwargs={"device": device_type}
+        )
     db_for_similarity = Chroma(
         persist_directory=PERSIST_DIRECTORY,
         embedding_function=embeddings,
@@ -248,64 +184,51 @@ def main(device_type, show_sources, use_history, model_type):
     # retriever = db.as_retriever()
     qa = retrieval_qa_pipline(device_type, use_history, promptTemplate_type=model_type)
     # Interactive questions and answers
-    while True:
-        query = input("\nEnter a query: ")
-        if query == "exit":
-            break
-        # Get the answer from the chain
+    # query = input("\nEnter a query: ")
+    # Get the answer from the chain
+    res = qa(query)
+    answer, docs = res["result"], res["source_documents"]
+
+    #docs_and_scores = db_for_similarity.similarity_search_with_relevance_scores(answer)
+    docs_and_scores1 = db_for_similarity.similarity_search_with_relevance_scores(query)
+    #docs_and_scores2 = db_for_similarity.similarity_search_with_relevance_scores(docs_and_scores)
+    #docs_and_scores1 = db_for_similarity.similarity_search_with_relevance_scores(docs_and_scores[0])
+    if docs_and_scores1[0][1] < 0.67: # & docs_and_scores1[0][1] < 0.72:
+        answer = "Ich weiß nicht"
+        print("\n> similarity score of query:")
+        print(docs_and_scores1[0][1])      
+    elif 0.67 <= docs_and_scores1[0][1] <= 0.75:
         res = qa(query)
-        answer, docs = res["result"], res["source_documents"]
+        Temp_answer, docs = res["result"], res["source_documents"]
+        
+        docs_and_scores2 = db_for_similarity.similarity_search_with_relevance_scores(Temp_answer)
+        if docs_and_scores2[0][1] < 0.75:# & docs_and_scores2[0][1] < 0.72:
+            answer = "Ich weiß nicht"
 
-        #docs_and_scores = db_for_similarity.similarity_search_with_relevance_scores(answer)
-        docs_and_scores1 = db_for_similarity.similarity_search_with_relevance_scores(query)
-        #docs_and_scores2 = db_for_similarity.similarity_search_with_relevance_scores(docs_and_scores)
-        #docs_and_scores1 = db_for_similarity.similarity_search_with_relevance_scores(docs_and_scores[0])
-        if docs_and_scores1[0][1] < 0.67: # & docs_and_scores1[0][1] < 0.72:
-            answer = "Leider bin ich mit diesen Informationen nicht vertraut."
+            print("\n> similarity score of answer:")
+            print(docs_and_scores2[0][1])
             print("\n> similarity score of query:")
-            print(docs_and_scores1[0][1])      
-        elif 0.67 <= docs_and_scores1[0][1] <= 0.75:
-            res = qa(query)
-            Temp_answer, docs = res["result"], res["source_documents"]
-            
-            docs_and_scores2 = db_for_similarity.similarity_search_with_relevance_scores(Temp_answer)
-            if docs_and_scores2[0][1] < 0.75:# & docs_and_scores2[0][1] < 0.72:
-                answer = "Leider bin ich mit diesen Informationen nicht vertraut."
-
-                print("\n> similarity score of answer:")
-                print(docs_and_scores2[0][1])
-                print("\n> similarity score of query:")
-                print(docs_and_scores1[0][1])               
-            else:
-                answer = Temp_answer
-                print("\n> similarity score of answer:")
-                print(docs_and_scores2[0][1])
-                print("\n> similarity score of query:")
-                print(docs_and_scores1[0][1]) 
+            print(docs_and_scores1[0][1])               
         else:
-            answer = answer
-            
+            answer = Temp_answer
+            print("\n> similarity score of answer:")
+            print(docs_and_scores2[0][1])
             print("\n> similarity score of query:")
             print(docs_and_scores1[0][1]) 
-        print(docs_and_scores1[0][1])
-        # Print the result
-        print("\n\n> Question:")
-        print(query)
-        print("\n> Answer:")
-        print(answer)
-
+    else:
+        answer = answer
         
-        if show_sources:  # this is a flag that you can set to disable showing answers.
-            # # Print the relevant sources used for the answer
-            print("----------------------------------SOURCE DOCUMENTS---------------------------")
-            for document in docs:
-                print("\n> " + document.metadata["source"] + ":")
-                print(document.page_content)
-            print("----------------------------------SOURCE DOCUMENTS---------------------------")
+        print("\n> similarity score of query:")
+        print(docs_and_scores1[0][1]) 
+    print(docs_and_scores1[0][1])
+    # Print the result
+    print("\n\n> Question:")
+    print(query)
+    print("\n> Answer:")
+    print(answer)
+    if answer.lower() == "ich weiss nicht":
+        answer = "Leider konnte unser System keine Antwort finden.\
+            Wir entschuldigen uns dafür und unser Support wird sich mit Ihnen in \
+                Verbindung setzen. Bitte teilen Sie Ihre E-Mail mit."
+    return {"message": answer}
 
-
-if __name__ == "__main__":
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)s - %(message)s", level=logging.INFO
-    )
-    main()
