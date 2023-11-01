@@ -17,7 +17,8 @@ SOURCE_DIRECTORY = f"{ROOT_DIRECTORY}/SOURCE_DOCUMENTS"
 PERSIST_DIRECTORY = f"{ROOT_DIRECTORY}/DB"
 
 MODELS_PATH = "./models"
-
+USE_HISTORY = False
+SHOW_SOURCE = False
 # Can be changed to a specific number
 INGEST_THREADS = os.cpu_count() or 8
 
@@ -30,7 +31,12 @@ CHROMA_SETTINGS = Settings(
 # Context Window and Max New Tokens
 CONTEXT_WINDOW_SIZE = 4096
 MAX_NEW_TOKENS = CONTEXT_WINDOW_SIZE  # int(CONTEXT_WINDOW_SIZE/4)
-DEVICE_TYPE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.backends.mps.is_available():
+    DEVICE_TYPE = "mps"
+elif torch.cuda.is_available():
+    DEVICE_TYPE = "cuda"
+else:
+    DEVICE_TYPE = "cpu"
 
 #### If you get a "not enough space in the buffer" error, you should reduce the values below, start with half of the original values and keep halving the value until the error stops appearing
 
