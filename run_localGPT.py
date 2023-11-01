@@ -157,7 +157,7 @@ def main(query,device_type="cuda" if torch.cuda.is_available() else "cpu",
         print(docs_and_scores1[0][1])      
     elif 0.67 <= docs_and_scores1[0][1] <= 0.75:
         res = QA(query)
-        Temp_answer, docs = res["result"], res["source_documents"]
+        Temp_answer = res["result"]
         
         docs_and_scores2 = DB.similarity_search_with_relevance_scores(Temp_answer)
         if docs_and_scores2[0][1] < 0.75:# & docs_and_scores2[0][1] < 0.72:
