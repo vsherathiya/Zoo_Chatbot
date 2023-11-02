@@ -27,6 +27,7 @@ from constants import (SHOW_SOURCE,
                        MODELS_PATH,
                        USE_HISTORY
                        )
+import time
 
 torch.manual_seed(42)
 callback_manager = CallbackManager([StreamingStdOutCallbackHandler()])
@@ -134,6 +135,7 @@ def main(query, device_type="cuda" if torch.cuda.is_available() else "cpu",
 
     if not os.path.exists(MODELS_PATH):
         os.mkdir(MODELS_PATH)
+    start_time = time.time()
     res = QA(query)
     answer = res["result"]
     docs_and_scores1 = DB.similarity_search_with_relevance_scores(query)
@@ -169,8 +171,5 @@ def main(query, device_type="cuda" if torch.cuda.is_available() else "cpu",
     print(query)
     print("\n> Answer:")
     print(answer)
-    if answer.lower() == "ich weiss nicht":
-        answer = "Leider konnte unser System keine Antwort finden.\
-            Wir entschuldigen uns dafür und unser Support wird sich mit \
-            Ihnen in Verbindung setzen. Bitte teilen Sie Ihre E-Mail mit."
-    return {"message": answer}
+    time_diff = time.time() - start_time
+    return {"message": answer + "\n Time :" + time_diff}
