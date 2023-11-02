@@ -172,4 +172,4 @@ def main(query, device_type="cuda" if torch.cuda.is_available() else "cpu",
     print("\n> Answer:")
     print(answer)
     time_diff = time.time() - start_time
-    return {"message": answer + "\n Time :" + time_diff}
+    return {"message": answer + "\nTime :" + str(round(time_diff,2)) + " Seconds" }
