@@ -15,7 +15,7 @@ def get_response_from_chatbot():
     return  jsonify(main(user_input))
 
 if __name__ == '__main__':
-   try:
+    try:
         app.run(host='0.0.0.0', port=8000)
-   except Exception as e:
+    except Exception as e:
         print("Failed in script at: " + str(e))
