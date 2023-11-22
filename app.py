@@ -1,8 +1,8 @@
 from flask import jsonify, Flask, render_template, request,send_from_directory
 from flask_cors import CORS, cross_origin
 from run_localGPT import main
-import time
-from datetime import datetime
+import threading
+
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -26,12 +26,16 @@ def get_response_from_chatbot():
     print("--------------->User Intput >>>>>\n\n\n",response,"<<<<<<<<\n\n\n")
     print(user_input)
     
+    # Create a new thread to handle the chatbot response
+    response_thread = threading.Thread(target=process_chatbot_response, args=(user_input,))
+    response_thread.start()
     
-    
+    return "Request in progress..."
 
-    # Print the formatted datetime
-
-    return  jsonify(response)
+def process_chatbot_response(user_input):
+    with thread_lock:
+        chatbot_response = main(user_input)
+    return jsonify({"message": chatbot_response})
 
 if __name__ == '__main__':
     try:
