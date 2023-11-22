@@ -38,7 +38,7 @@ def process_chatbot_response(user_input):
     return jsonify({"message": chatbot_response})
 
 if __name__ == '__main__':
-    try:
+   try:
         app.run(host='0.0.0.0', port=8000)
-    except Exception as e:
+   except Exception as e:
         print("Failed in script at: " + str(e))
