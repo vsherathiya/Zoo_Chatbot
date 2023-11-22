@@ -2,6 +2,7 @@ from flask import jsonify, Flask, render_template, request,send_from_directory
 from flask_cors import CORS, cross_origin
 from run_localGPT import main
 import time
+from datetime import datetime
 app = Flask(__name__)
 cors = CORS(app)
 app.config['CORS_HEADERS'] = 'Content-Type'
@@ -16,8 +17,15 @@ def get_response_from_chatbot():
     start_time = time.time()
     response = main(user_input)
     end_time = time.time()
-    response.update({'user_name':user_name})
-    response.update({'strat_time': start_time,"end_time":end_time,"time_diff":str(start_time-end_time)})
+    formatted_start_time = datetime.fromtimestamp(start_time).strftime('%d-%m-%Y/ %H:%M:%S')
+    formatted_end_time = datetime.fromtimestamp(end_time).strftime('%d-%m-%Y/ %H:%M:%S')
+
+    response.update({'user_name': user_name})
+    response.update({
+        'start_time': formatted_start_time,
+        "end_time": formatted_end_time,
+        "time_diff": str(end_time - start_time)
+    })
     print("--------------->User Intput >>>>>\n\n\n",response,"<<<<<<<<\n\n\n")
     print(user_input)
     return  jsonify(response)
