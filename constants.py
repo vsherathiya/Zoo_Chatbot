@@ -8,15 +8,16 @@ from langchain.document_loaders import CSVLoader, PDFMinerLoader, TextLoader, Un
 from langchain.document_loaders import UnstructuredFileLoader, UnstructuredMarkdownLoader
 import torch
 
-# load_dotenv()
 ROOT_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
-# Define the folder for storing database
-SOURCE_DIRECTORY = f"{ROOT_DIRECTORY}/SOURCE_DOCUMENTS"
+# Define the folder for storing source documents
+SOURCE_DIRECTORY = os.path.join(ROOT_DIRECTORY, "SOURCE_DOCUMENTS")
 
-PERSIST_DIRECTORY = f"{ROOT_DIRECTORY}/DB"
+# Define the folder for database persistence
+PERSIST_DIRECTORY = os.path.join(ROOT_DIRECTORY, "DB")
 
-MODELS_PATH = "./models"
+# Path for models
+MODELS_PATH = os.path.join(".", "models")
 USE_HISTORY = False
 SHOW_SOURCE = False
 # Can be changed to a specific number
